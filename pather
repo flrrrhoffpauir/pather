@@ -1,0 +1,161 @@
+#!/usr/bin/env node
+
+var fs = require('fs'),
+	path = require('path');
+
+
+var inputFile = path.join(__dirname, process.argv[2]),
+	inputStream = fs.createReadStream(inputFile, {encoding: 'utf8'}),
+	outputMatrix = [],
+	outputFile = path.join(__dirname, process.argv[3]);
+
+
+var debug = false;
+
+
+/*
+   Handlers for read stream
+*/
+inputStream.on('data', function(data) {
+	stringToMatrix(data);
+});
+
+inputStream.on('open', function(res) {
+	// console.log(res);
+});
+
+inputStream.on('error', function(err) {
+	return console.log(err);
+});
+
+
+/*
+   Read each line into an array, create 2d array
+*/
+function stringToMatrix(string) {
+	var data = string;
+	var lineNum = data.indexOf('\n');
+	var inputMatrix = [];
+
+	while(lineNum != -1) {
+		var line = data.substring(0, lineNum);
+		data = data.substring(lineNum + 1);
+
+		// should always be the same
+		lineNum = data.indexOf('\n');
+
+		inputMatrix.push(stringToArray(line));
+		// console.log(inputMatrix[i][4]);	
+	}
+
+	outputMatrix = inputMatrix;
+	showMe(string);
+	findHashCoords(inputMatrix);
+}
+
+
+/*
+   Get the location of hash marks
+*/
+function findHashCoords(array) {
+	var inputMatrix = array;
+	var hashCoords = [];
+	var hashIndex = 0;
+	for(i = 0; i < inputMatrix.length; i++) {
+		for(j = 0; j < inputMatrix[i].length; j++) {
+			if(inputMatrix[i][j] == "#") {
+				hashCoords[hashIndex] = [i, j];
+				showMe(hashCoords[hashIndex]);
+				hashIndex++;
+			}
+		}
+	}
+
+	connectHashes(hashCoords);
+}
+
+
+/*
+   Add asterisk paths leading to hash marks
+*/
+function connectHashes(array) {
+	hashCoords = array;
+	for(i = 0; i < hashCoords.length - 1; i++) {
+		x1 = hashCoords[i][0];
+		y1 = hashCoords[i][1];
+		x2 = hashCoords[i+1][0];
+		y2 = hashCoords[i+1][1];
+
+		addVertLine(x1, y1, x2, y2);
+		addHorzLine(x1, y1, x2, y2);
+	}
+	
+	writeOutput();
+}
+
+
+/*
+   Horizontal asterisks
+*/
+function addHorzLine(x1, y1, x2, y2) {
+	if(y1 < y2) {
+		y1 = (x1 == x2) ? y1 + 1 : y1;
+		while(y1 < y2) {
+			outputMatrix[x2][y1] = '*';
+			y1 += 1;
+		}
+	} else {
+		while(y2 < y1) {
+			outputMatrix[x2][y2+1] = '*';
+			y2++;
+		}
+	}
+}
+
+
+/*
+   Vertical asterisks
+*/
+function addVertLine(x1, y1, x2, y2) {
+	while(x1 < x2) {
+		outputMatrix[x1+1][y1] = '*';
+		x1++;
+	}
+}
+
+
+/*
+   Convert matrix to string and write to file
+*/
+function writeOutput() {
+	var outputString = arrayToString(outputMatrix);
+	showMe(outputString);
+	var outputStream = fs.writeFile(outputFile, outputString, 'utf8');
+}
+
+
+/*
+   ~ UTILS
+*/
+function stringToArray(string) {
+	return string.split('');
+}
+
+function arrayToString(array) {
+	var outputString = ''
+	for(i = 0; i < array.length; i++) {
+		for(j = 0; j < array[i].length; j++) {
+			outputString += array[i][j];
+		}
+		outputString += '\n';
+	}
+	return outputString;
+}
+
+function showMe(something) {
+	if(debug == true) {
+		console.log(something);
+	}
+	return false;
+}
+
